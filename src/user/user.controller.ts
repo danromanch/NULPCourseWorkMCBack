@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpException,
   HttpStatus,
+  Param,
   Post,
   Req,
   Res,
@@ -131,4 +133,12 @@ export class UserController {
     }
     return res.send('User successfully logged out');
   }
+
+  @Get('confirm/:token')
+  async confirmation(@Param('token') token: string) {
+    await this.userService.confirm(token);
+    return { message: 'Email confirmed' };
+  }
 }
+
+// TODO reset password, forgot password, mobile verification, google auth, add mc, email push, sms push, choose where to send sms.

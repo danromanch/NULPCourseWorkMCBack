@@ -15,6 +15,10 @@ export class UserService {
     private jwtService: JwtService,
   ) {}
 
+  async findOne(id: number) {
+    return await this.userRepository.findOne({ where: { id } });
+  }
+
   async register(name: string, password: string, email: string) {
     if (
       (await this.userRepository.findOne({ where: { email } }).then()) !== null
@@ -22,8 +26,12 @@ export class UserService {
       throw new HttpException('User already exists', 400);
     }
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = this.userRepository.create({ name, passwordHash, email });
-    // TODO send email with confirmation link
+    const user = this.userRepository.create({
+      name,
+      passwordHash,
+      email,
+      verified: false,
+    });
     return await this.userRepository.save(user);
   }
 
@@ -52,7 +60,7 @@ export class UserService {
     const user = await this.userRepository.findOne({
       where: { id: payload.sub },
     });
-    const { passwordHash, id, ...userDto } = user as UserEntity;
+    const { passwordHash, id, verified, ...userDto } = user as UserEntity;
     return userDto;
   }
 
@@ -73,5 +81,10 @@ export class UserService {
       access_token: access_token,
       refresh_token: refresh_token,
     };
+  }
+
+  async confirm(token: string) {
+    const payload: JwtPayload = this.jwtService.decode(token);
+    await this.userRepository.update(payload.sub, { verified: true });
   }
 }

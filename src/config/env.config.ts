@@ -17,4 +17,13 @@ export default () => ({
     refreshSecret: process.env.REFRESH_SECRET,
     refreshExpiresIn: process.env.REFRESH_EXPIRES_IN,
   },
+  email: {
+    host: process.env.MAIL_HOST,
+    username: process.env.MAIL_USERNAME,
+    password: process.env.MAIL_PASSWORD,
+  },
+  app: {
+    url: process.env.URL,
+    port: parseInt(<string>process.env.PORT, 10),
+  },
 });

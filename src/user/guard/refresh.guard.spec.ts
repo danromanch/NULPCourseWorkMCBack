@@ -1,7 +1,7 @@
-import { RefreshGuard } from './refresh.guard';
+import { RefreshTokenGuard } from './refresh.guard';
 
 describe('RefreshGuard', () => {
   it('should be defined', () => {
-    expect(new RefreshGuard()).toBeDefined();
+    expect(new RefreshTokenGuard()).toBeDefined();
   });
 });

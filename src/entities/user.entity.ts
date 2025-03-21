@@ -21,6 +21,9 @@ export class UserEntity {
   @Column()
   passwordHash: string;
 
+  @Column()
+  verified: boolean;
+
   @ManyToMany(
     () => MicrocontrollerEntity,
     (microcontroller) => microcontroller.user,

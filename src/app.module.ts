@@ -7,6 +7,7 @@ import { dataSource } from './config/db.config';
 import EnvConfig from './config/env.config';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     ConfigModule.forRoot({
       load: [EnvConfig],
     }),
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

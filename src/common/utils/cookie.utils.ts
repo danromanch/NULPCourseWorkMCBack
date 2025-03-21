@@ -7,7 +7,7 @@ export const cookieConfig = {
       path: '/',
       httpOnly: true,
       sameSite: 'strict' as const,
-      secure: true,
+      secure: false,
       maxAge: 1000 * 60 * 60 * 24 * 7,
     },
   },
@@ -17,7 +17,7 @@ export const cookieConfig = {
       path: '/',
       httpOnly: true,
       sameSite: 'strict' as const,
-      secure: true,
+      secure: false,
       maxAge: 1000 * 60 * 60 * 24 * 30,
     },
   },
@@ -67,6 +67,6 @@ export const deleteCookie = (res: Response, name: string) => {
     path: '/',
     httpOnly: true,
     sameSite: 'strict' as const,
-    secure: true,
+    secure: false,
   });
 };
