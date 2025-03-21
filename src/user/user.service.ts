@@ -19,6 +19,10 @@ export class UserService {
     return await this.userRepository.findOne({ where: { id } });
   }
 
+  async findOneByEmail(email: string) {
+    return await this.userRepository.findOne({ where: { email } });
+  }
+
   async register(name: string, password: string, email: string) {
     if (
       (await this.userRepository.findOne({ where: { email } }).then()) !== null
@@ -86,5 +90,20 @@ export class UserService {
   async confirm(token: string) {
     const payload: JwtPayload = this.jwtService.decode(token);
     await this.userRepository.update(payload.sub, { verified: true });
+  }
+
+  async changePassword(token: string, newPassword: string) {
+    const payload: JwtPayload = this.jwtService.decode(token);
+    const user = await this.userRepository.findOne({
+      where: { id: payload.sub },
+    });
+    if (user === null) {
+      throw new HttpException('User not found', 404);
+    }
+    if (await bcrypt.compare(newPassword, user?.passwordHash)) {
+      throw new HttpException('Password already set', 400);
+    }
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await this.userRepository.update(user.id, { passwordHash });
   }
 }

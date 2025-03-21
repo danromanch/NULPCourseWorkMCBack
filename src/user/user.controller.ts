@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
   Req,
   Res,
   UseGuards,
@@ -30,6 +31,7 @@ import {
   setRefreshTokenCookie,
 } from '../common/utils/cookie.utils';
 import { RefreshTokenGuard } from './guard/refresh.guard';
+import envConfig from '../config/env.config';
 
 @ApiTags('user')
 @Controller('user')
@@ -139,6 +141,34 @@ export class UserController {
     await this.userService.confirm(token);
     return { message: 'Email confirmed' };
   }
-}
 
-// TODO reset password, forgot password, mobile verification, google auth, add mc, email push, sms push, choose where to send sms.
+  @Post('change-password')
+  @UseGuards(UserGuard)
+  async changePassword(
+    @Req() req: Request,
+    @Query('newPassword') newPassword: string,
+  ) {
+    const token = extractTokenFromCookies(req, 'auth');
+    if (token === null) {
+      throw new HttpException('Token not found', 404);
+    }
+    return await this.userService.changePassword(token, newPassword);
+  }
+
+  @Get('redirect-forgot/:token')
+  redirectForgot(@Res() res: Response, @Param('token') token: string) {
+    return res.redirect(`${envConfig().app.frontend}/forgot-password/${token}`);
+  }
+
+  @Get('forgot-password')
+  async forgotPassword(
+    @Query('token') token: string,
+    @Query('password') password: string,
+  ) {
+    await this.userService.changePassword(token, password);
+    return { message: 'Password changed' };
+  }
+}
+// TODO mobile verification, google auth
+// TODO add mc, email push, sms push, choose where to send sms, add friend to mc.
+// Check forgot password

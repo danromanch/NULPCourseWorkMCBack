@@ -25,5 +25,6 @@ export default () => ({
   app: {
     url: process.env.URL,
     port: parseInt(<string>process.env.PORT, 10),
+    frontend: process.env.FRONTEND_URL,
   },
 });

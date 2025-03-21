@@ -30,4 +30,26 @@ export class MailService {
       },
     });
   }
+
+  async sendUserForgot(email: string) {
+    const user = await this.userService.findOneByEmail(email);
+    if (!user) {
+      throw new HttpException('User not found', 404);
+    }
+    const payload = { email: user.email, sub: user.id };
+    const token = this.jwtService.sign(payload, {
+      secret: envConfig().user.refreshSecret,
+      expiresIn: envConfig().user.refreshExpiresIn,
+    });
+    const link = `${envConfig().app.url}/user/redirect-forgot/${token}`;
+    await this.mailerService.sendMail({
+      to: payload.email,
+      subject: 'We sorry you forgot your password, you can change it here',
+      template: './forgot',
+      context: {
+        name: user.name,
+        link: link,
+      },
+    });
+  }
 }
