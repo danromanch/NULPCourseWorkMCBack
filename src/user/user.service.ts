@@ -23,19 +23,26 @@ export class UserService {
     return await this.userRepository.findOne({ where: { email } });
   }
 
-  async register(name: string, password: string, email: string) {
+  async register(name: string, email: string, password?: string) {
     if (
       (await this.userRepository.findOne({ where: { email } }).then()) !== null
     ) {
       throw new HttpException('User already exists', 400);
     }
-    const passwordHash = await bcrypt.hash(password, 10);
+    let passwordHash: string | null;
+    if (password) {
+      passwordHash = await bcrypt.hash(password, 10);
+    } else {
+      passwordHash = null;
+    }
     const user = this.userRepository.create({
       name,
-      passwordHash,
       email,
       verified: false,
     });
+    if (passwordHash) {
+      user.passwordHash = passwordHash;
+    }
     return await this.userRepository.save(user);
   }
 
@@ -44,7 +51,7 @@ export class UserService {
     if (user === null) {
       throw new HttpException('User not found', 404);
     }
-    if (!(await bcrypt.compare(password, user.passwordHash))) {
+    if (!(await bcrypt.compare(password, <string>user.passwordHash))) {
       throw new HttpException('Password incorrect', 400);
     }
     const payload = { email: user.email, sub: user.id };
@@ -100,10 +107,27 @@ export class UserService {
     if (user === null) {
       throw new HttpException('User not found', 404);
     }
-    if (await bcrypt.compare(newPassword, user?.passwordHash)) {
+    if (await bcrypt.compare(newPassword, <string>user?.passwordHash)) {
       throw new HttpException('Password already set', 400);
     }
     const passwordHash = await bcrypt.hash(newPassword, 10);
     await this.userRepository.update(user.id, { passwordHash });
+  }
+
+  async loginGoogle(email: string) {
+    const user = await this.findOneByEmail(email);
+    if (!user) {
+      throw new HttpException('User not found', 404);
+    }
+    const payload = { email: user.email, sub: user.id };
+    const access_token = this.jwtService.sign(payload);
+    const refresh_token = this.jwtService.sign(payload, {
+      secret: envConfig().user.refreshSecret,
+      expiresIn: envConfig().user.refreshExpiresIn,
+    });
+    return {
+      access_token: access_token,
+      refresh_token: refresh_token,
+    };
   }
 }

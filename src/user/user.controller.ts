@@ -32,11 +32,20 @@ import {
 } from '../common/utils/cookie.utils';
 import { RefreshTokenGuard } from './guard/refresh.guard';
 import envConfig from '../config/env.config';
+import { GoogleOauthGuard } from './guard/google.guard';
+import { GoogleUserDto } from '../common/dto/GoogleUserDto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { UserEntity } from '../entities/user.entity';
+import { Repository } from 'typeorm';
 
 @ApiTags('user')
 @Controller('user')
 export class UserController {
-  constructor(private userService: UserService) {}
+  constructor(
+    private userService: UserService,
+    @InjectRepository(UserEntity)
+    private userRepository: Repository<UserEntity>,
+  ) {}
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -168,7 +177,31 @@ export class UserController {
     await this.userService.changePassword(token, password);
     return { message: 'Password changed' };
   }
+
+  @Get('google')
+  @UseGuards(GoogleOauthGuard)
+  async googleLogin() {}
+
+  @Get('google/callback')
+  @UseGuards(GoogleOauthGuard)
+  async googleLoginCallback(@Req() req: Request, @Res() res: Response) {
+    const user = req.user as GoogleUserDto;
+    const exists = await this.userService.findOneByEmail(user.email);
+    if (!exists) {
+      await this.userService.register(user.username, user.email);
+      await this.userRepository.update(
+        { email: user.email },
+        { verified: true },
+      );
+    }
+    const { access_token, refresh_token } = await this.userService.loginGoogle(
+      user.email,
+    );
+    setAuthTokenCookie(res, access_token);
+    setRefreshTokenCookie(res, refresh_token);
+    return res.redirect(<string>envConfig().app.frontend);
+  }
 }
-// TODO mobile verification, google auth
-// TODO add mc, email push, sms push, choose where to send sms, add friend to mc.
+
+// TODO add mc, email push, add friend to mc.
 // Check forgot password

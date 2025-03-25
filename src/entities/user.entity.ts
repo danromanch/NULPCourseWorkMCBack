@@ -18,8 +18,8 @@ export class UserEntity {
   @Column()
   email: string;
 
-  @Column()
-  passwordHash: string;
+  @Column({ nullable: true })
+  passwordHash?: string;
 
   @Column()
   verified: boolean;

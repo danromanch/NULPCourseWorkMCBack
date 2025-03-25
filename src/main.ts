@@ -5,6 +5,11 @@ import * as process from 'node:process';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableCors({
+    origin: '*',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type, Accept, Authorization',
+  });
   const config = new DocumentBuilder()
     .setTitle('Coursework for microcontrollers-part-one')
     .setDescription('Application for smart postbox')

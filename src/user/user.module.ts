@@ -9,6 +9,7 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategy/jwt.strategy';
 import { RefreshStrategy } from './strategy/refresh.strategy';
 import { MailService } from '../mail/mail.service';
+import { GoogleStrategy } from './strategy/google.strategy';
 
 @Module({
   imports: [
@@ -20,7 +21,13 @@ import { MailService } from '../mail/mail.service';
       signOptions: { expiresIn: envConfig().user.expiresIn },
     }),
   ],
-  providers: [UserService, JwtStrategy, RefreshStrategy, MailService],
+  providers: [
+    UserService,
+    JwtStrategy,
+    RefreshStrategy,
+    MailService,
+    GoogleStrategy,
+  ],
   controllers: [UserController],
   exports: [UserService, TypeOrmModule],
 })
