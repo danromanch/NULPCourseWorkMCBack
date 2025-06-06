@@ -1,5 +1,5 @@
 export enum ActionEnum {
-  lock,
-  unlock,
-  detectItem,
+  openDoor,
+  closeDoor,
+  getMail,
 }

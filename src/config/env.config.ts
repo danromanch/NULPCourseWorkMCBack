@@ -32,4 +32,7 @@ export default () => ({
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: process.env.GOOGLE_REDIRECT_URI,
   },
+  microcontroller: {
+    secretWord: process.env.SECRET_MC,
+  },
 });

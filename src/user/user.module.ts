@@ -10,10 +10,11 @@ import { JwtStrategy } from './strategy/jwt.strategy';
 import { RefreshStrategy } from './strategy/refresh.strategy';
 import { MailService } from '../mail/mail.service';
 import { GoogleStrategy } from './strategy/google.strategy';
+import { MicrocontrollerEntity } from '../entities/microcontroller.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserEntity]),
+    TypeOrmModule.forFeature([UserEntity, MicrocontrollerEntity]),
     PassportModule,
     JwtModule.register({
       global: true,

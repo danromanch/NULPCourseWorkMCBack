@@ -52,4 +52,20 @@ export class MailService {
       },
     });
   }
+
+  async sendUserGetMail(email: string) {
+    const user = await this.userService.findOneByEmail(email);
+    if (!user) {
+      return 'User not found';
+    }
+    console.log('asdasdadkladl;asjd');
+    await this.mailerService.sendMail({
+      to: user.email,
+      subject: 'You got a mail in your post box',
+      template: './get-mail',
+      context: {
+        name: user.name,
+      },
+    });
+  }
 }

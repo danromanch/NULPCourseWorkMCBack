@@ -11,9 +11,7 @@ export const dataSource = new DataSource({
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   synchronize: true,
   extra: {
-    ssl: {
-      rejectUnauthorized: false,
-    },
+    ssl: false,
   },
 });
 

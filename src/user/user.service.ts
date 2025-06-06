@@ -6,12 +6,15 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from '../common/objects/JwtPayload';
 import envConfig from '../config/env.config';
+import { MicrocontrollerEntity } from '../entities/microcontroller.entity';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(UserEntity)
     private userRepository: Repository<UserEntity>,
+    @InjectRepository(MicrocontrollerEntity)
+    private microControllerRepository: Repository<MicrocontrollerEntity>,
     private jwtService: JwtService,
   ) {}
 
@@ -129,5 +132,18 @@ export class UserService {
       access_token: access_token,
       refresh_token: refresh_token,
     };
+  }
+
+  async addMc(token: string, mcId: number) {
+    const payload: JwtPayload = this.jwtService.decode(token);
+    const user = await this.userRepository.findOneOrFail({
+      where: { id: payload.sub },
+    });
+    const microController = await this.microControllerRepository.findOneOrFail({
+      where: { id: mcId },
+    });
+    user.microcontrollers = user.microcontrollers || [];
+    user.microcontrollers.push(microController);
+    return await this.userRepository.save(user);
   }
 }

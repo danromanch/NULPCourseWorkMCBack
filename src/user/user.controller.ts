@@ -76,8 +76,8 @@ export class UserController {
   async register(@Body() body: UserRegisterDto) {
     return await this.userService.register(
       body.name,
-      body.password,
       body.email,
+      body.password,
     );
   }
 
@@ -201,7 +201,35 @@ export class UserController {
     setRefreshTokenCookie(res, refresh_token);
     return res.redirect(<string>envConfig().app.frontend);
   }
+
+  @Post('addMc')
+  @UseGuards(UserGuard)
+  @ApiOperation({
+    summary: 'Add microcontroller to user',
+    description: 'Adds a microcontroller to the user.',
+  })
+  @ApiResponse({ status: 200, description: 'Microcontroller added' })
+  @ApiResponse({ status: 404, description: 'Token not found' })
+  @ApiResponse({ status: 500, description: 'Failed to add microcontroller' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { mcId: { type: 'number' } },
+    },
+  })
+  @ApiBearerAuth('access-token')
+  @HttpCode(HttpStatus.OK)
+  async addMc(@Body() body: { mcId: number }, @Req() req: Request) {
+    console.log(
+      'ddsadasdhuoiahoisdjaklsjdasjdklasjkl;daqklsjdlkajs;ldhajksdklahslkdkalkj',
+    );
+    const token = extractTokenFromCookies(req, 'auth');
+    if (token === null) {
+      throw new HttpException('Token not found', 404);
+    }
+    return await this.userService.addMc(token, body.mcId);
+  }
 }
 
-// TODO add mc, email push, add friend to mc.
+// TODO email push, add friend to mc.
 // Check forgot password
