@@ -1,4 +1,4 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from '../entities/user.entity';
 import { Repository } from 'typeorm';
@@ -73,6 +73,7 @@ export class UserService {
     const payload: JwtPayload = this.jwtService.decode(token);
     const user = await this.userRepository.findOne({
       where: { id: payload.sub },
+      relations: ['microcontrollers'],
     });
     const { passwordHash, id, verified, ...userDto } = user as UserEntity;
     return userDto;
@@ -134,16 +135,45 @@ export class UserService {
     };
   }
 
-  async addMc(token: string, mcId: number) {
+  async checkToken(token: string): Promise<boolean> {
     const payload: JwtPayload = this.jwtService.decode(token);
-    const user = await this.userRepository.findOneOrFail({
+    const user = await this.userRepository.findOne({
       where: { id: payload.sub },
     });
-    const microController = await this.microControllerRepository.findOneOrFail({
-      where: { id: mcId },
-    });
-    user.microcontrollers = user.microcontrollers || [];
-    user.microcontrollers.push(microController);
-    return await this.userRepository.save(user);
+    return !!user;
   }
+
+  async getFriendlyDevices(token: string) {
+    const payload: JwtPayload = this.jwtService.decode(token);
+    const friendlyDevices = await this.microControllerRepository.find({
+      where: { friends: { id: payload.sub } },
+      relations: ['friends', 'owner'],
+    });
+
+    if (!friendlyDevices) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    // Return the list of connected devices or empty array if none
+    return {
+      devices: friendlyDevices.map((device) => ({
+        id: device.id,
+        owner: device.owner ? device.owner.name : 'Unknown',
+      })),
+    };
+  }
+
+  //
+  // async addMc(token: string, mcId: number) {
+  //   const payload: JwtPayload = this.jwtService.decode(token);
+  //   const user = await this.userRepository.findOneOrFail({
+  //     where: { id: payload.sub },
+  //   });
+  //   const microController = await this.microControllerRepository.findOneOrFail({
+  //     where: { id: mcId },
+  //   });
+  //   user.microcontrollers = user.microcontrollers || [];
+  //   user.microcontrollers.push(microController);
+  //   return await this.userRepository.save(user);
+  // }
 }

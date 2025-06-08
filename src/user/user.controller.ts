@@ -202,33 +202,69 @@ export class UserController {
     return res.redirect(<string>envConfig().app.frontend);
   }
 
-  @Post('addMc')
+  @Get('check-token')
   @UseGuards(UserGuard)
   @ApiOperation({
-    summary: 'Add microcontroller to user',
-    description: 'Adds a microcontroller to the user.',
+    summary: 'Check user token',
+    description: 'Checks if the user token is valid.',
   })
-  @ApiResponse({ status: 200, description: 'Microcontroller added' })
+  @ApiResponse({ status: 200, description: 'Token is valid' })
   @ApiResponse({ status: 404, description: 'Token not found' })
-  @ApiResponse({ status: 500, description: 'Failed to add microcontroller' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: { mcId: { type: 'number' } },
-    },
-  })
-  @ApiBearerAuth('access-token')
+  @ApiResponse({ status: 500, description: 'Failed to check token' })
   @HttpCode(HttpStatus.OK)
-  async addMc(@Body() body: { mcId: number }, @Req() req: Request) {
-    console.log(
-      'ddsadasdhuoiahoisdjaklsjdasjdklasjkl;daqklsjdlkajs;ldhajksdklahslkdkalkj',
-    );
+  async checkToken(@Req() req: Request) {
     const token = extractTokenFromCookies(req, 'auth');
     if (token === null) {
       throw new HttpException('Token not found', 404);
     }
-    return await this.userService.addMc(token, body.mcId);
+    return await this.userService.checkToken(token);
   }
+
+  @Get('friendly-devices')
+  @UseGuards(UserGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Check user friendly devices',
+    description:
+      'Returns information about friendly devices the user is connected to.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of connected friendly devices',
+  })
+  @ApiResponse({ status: 404, description: 'Token not found' })
+  @HttpCode(HttpStatus.OK)
+  async getFriendlyDevices(@Req() req: Request) {
+    const token = extractTokenFromCookies(req, 'auth');
+    if (token === null) {
+      throw new HttpException('Token not found', 404);
+    }
+    return await this.userService.getFriendlyDevices(token);
+  }
+  // @Post('addMc')
+  // @UseGuards(UserGuard)
+  // @ApiOperation({
+  //   summary: 'Add microcontroller to user',
+  //   description: 'Adds a microcontroller to the user.',
+  // })
+  // @ApiResponse({ status: 200, description: 'Microcontroller added' })
+  // @ApiResponse({ status: 404, description: 'Token not found' })
+  // @ApiResponse({ status: 500, description: 'Failed to add microcontroller' })
+  // @ApiBody({
+  //   schema: {
+  //     type: 'object',
+  //     properties: { mcId: { type: 'number' } },
+  //   },
+  // })
+  // @ApiBearerAuth('access-token')
+  // @HttpCode(HttpStatus.OK)
+  // async addMc(@Body() body: { mcId: number }, @Req() req: Request) {
+  //   const token = extractTokenFromCookies(req, 'auth');
+  //   if (token === null) {
+  //     throw new HttpException('Token not found', 404);
+  //   }
+  //   return await this.userService.addMc(token, body.mcId);
+  // }
 }
 
 // TODO email push, add friend to mc.

@@ -24,10 +24,7 @@ export class UserEntity {
   @Column()
   verified: boolean;
 
-  @ManyToMany(
-    () => MicrocontrollerEntity,
-    (microcontroller) => microcontroller.user,
-  )
+  @ManyToMany(() => MicrocontrollerEntity)
   @JoinTable()
   microcontrollers: MicrocontrollerEntity[];
 }

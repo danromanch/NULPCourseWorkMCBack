@@ -1,4 +1,11 @@
-import { Entity, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Entity,
+  ManyToMany,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  JoinTable,
+} from 'typeorm';
 import { MicrocontrollerLogEntity } from './microcontroller.log.entity';
 import { UserEntity } from './user.entity';
 
@@ -7,15 +14,15 @@ export class MicrocontrollerEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @OneToMany(() => MicrocontrollerLogEntity, (logs) => logs.microcontroller)
+  @OneToMany(() => MicrocontrollerLogEntity, (logs) => logs.microcontroller, {
+    onDelete: 'CASCADE',
+  })
   logs: MicrocontrollerLogEntity[];
 
-  @ManyToMany(() => UserEntity, (user) => user.microcontrollers)
-  user: UserEntity;
-
-  @ManyToOne(() => UserEntity, { nullable: false })
+  @ManyToOne(() => UserEntity, { nullable: true })
   owner: UserEntity;
 
   @ManyToMany(() => UserEntity)
+  @JoinTable()
   friends: UserEntity[];
 }

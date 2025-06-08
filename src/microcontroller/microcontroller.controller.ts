@@ -13,7 +13,7 @@ import {
 import { MicrocontrollerService } from './microcontroller.service';
 import { MicrocontrollerGateway } from './microcontroller.gateway';
 import { ApiBody, ApiQuery } from '@nestjs/swagger';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { ActionEnum } from '../common/enums/action.enum';
 import { UserGuard } from '../user/guard/user.guard';
 import { extractTokenFromCookies } from '../common/utils/cookie.utils';
@@ -28,12 +28,23 @@ export class MicrocontrollerController {
     private readonly jwtService: JwtService,
   ) {}
 
-  @ApiQuery({ name: 'device_id' })
   @UseGuards(UserGuard)
-  @Post('open')
-  async openDoor(
-    @Query('device_id') device_id: string,
-    @Req() req,
+  @Post('add-friend')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        device_id: { type: 'number', example: 1 },
+        email: { type: 'string', example: 'friend@example.com' },
+      },
+      required: ['device_id', 'email'],
+    },
+    description:
+      'Add a friend by email to allow them to open/close the lock for the specified device_id.',
+  })
+  async addFriend(
+    @Body() body: { device_id: number; email: string },
+    @Req() req: Request,
     @Res() res: Response,
   ) {
     const token = extractTokenFromCookies(req, 'auth');
@@ -41,28 +52,42 @@ export class MicrocontrollerController {
       throw new ForbiddenException('No authentication token provided');
     }
     const payload: JwtPayload = this.jwtService.decode(token);
-    const owns = await this.microcontrollerService.userOwnsMicrocontroller(
+    const result = await this.microcontrollerService.addFriendToMicrocontroller(
+      payload.sub,
+      body.device_id,
+      body.email,
+    );
+    return res.status(HttpStatus.OK).send({ message: result });
+  }
+
+  @ApiQuery({ name: 'device_id' })
+  @UseGuards(UserGuard)
+  @Post('open')
+  async openDoor(
+    @Query('device_id') device_id: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const token = extractTokenFromCookies(req, 'auth');
+    if (!token) {
+      throw new ForbiddenException('No authentication token provided');
+    }
+    const payload: JwtPayload = this.jwtService.decode(token);
+    const canOpen = await this.microcontrollerService.userCanOpenOrClose(
       payload.sub,
       parseInt(device_id),
     );
-    if (!owns) {
-      throw new ForbiddenException('You do not own this microcontroller');
-    }
-    const sent: unknown = this.microcontrollerGateway.sendToOne(
-      device_id,
-      'open',
-    );
-    if (sent) {
-      await this.microcontrollerService['logAction'](
-        parseInt(device_id),
-        ActionEnum.openDoor,
+    if (!canOpen) {
+      throw new ForbiddenException(
+        'You do not have access to open this microcontroller',
       );
-      return res.status(HttpStatus.OK).send({ message: 'Open command sent' });
-    } else {
-      return res
-        .status(HttpStatus.NOT_FOUND)
-        .send({ message: 'Device not connected' });
     }
+    this.microcontrollerGateway.sendToAll('open');
+    await this.microcontrollerService['logAction'](
+      parseInt(device_id),
+      ActionEnum.openDoor,
+    );
+    return res.status(HttpStatus.OK).send({ message: 'Open command sent' });
   }
 
   @ApiQuery({ name: 'device_id' })
@@ -78,40 +103,59 @@ export class MicrocontrollerController {
       throw new ForbiddenException('No authentication token provided');
     }
     const payload: JwtPayload = this.jwtService.decode(token);
-    const owns = await this.microcontrollerService.userOwnsMicrocontroller(
+    const canClose = await this.microcontrollerService.userCanOpenOrClose(
       payload.sub,
       parseInt(device_id),
     );
-    if (!owns) {
-      throw new ForbiddenException('You do not own this microcontroller');
-    }
-    const sent: unknown = this.microcontrollerGateway.sendToOne(
-      device_id,
-      'close',
-    );
-    if (sent) {
-      await this.microcontrollerService['logAction'](
-        parseInt(device_id),
-        ActionEnum.closeDoor,
+    if (!canClose) {
+      throw new ForbiddenException(
+        'You do not have access to close this microcontroller',
       );
-      return res.status(HttpStatus.OK).send({ message: 'Close command sent' });
-    } else {
-      return res
-        .status(HttpStatus.NOT_FOUND)
-        .send({ message: 'Device not connected' });
     }
+    this.microcontrollerGateway.sendToAll('close');
+    await this.microcontrollerService['logAction'](
+      parseInt(device_id),
+      ActionEnum.closeDoor,
+    );
+    return res.status(HttpStatus.OK).send({ message: 'Close command sent' });
   }
 
   @Post('register')
-  @ApiBody({
-    schema: { type: 'object', properties: { secretWord: { type: 'string' } } },
-  })
   async register(@Body() body: { secretWord: string }, @Res() res: Response) {
-    console.log('attempting to register', body);
-
+    // Register with secret word, no owner
     const data = await this.microcontrollerService.register(body.secretWord);
-    console.log('data', data);
     return res.status(HttpStatus.CREATED).send(String(data));
+  }
+
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        device_id: { type: 'number', example: 1 },
+      },
+      required: ['device_id'],
+    },
+    description: 'Set the owner for a microcontroller by device_id.',
+  })
+  @UseGuards(UserGuard)
+  @Post('add-mc')
+  async addMicrocontroller(
+    @Body() body: { device_id: number },
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const token = extractTokenFromCookies(req, 'auth');
+    if (!token) {
+      throw new ForbiddenException('No authentication token provided');
+    }
+    const payload: JwtPayload = this.jwtService.decode(token);
+    await this.microcontrollerService.setOwnerForMicrocontroller(
+      body.device_id,
+      payload.sub,
+    );
+    return res
+      .status(HttpStatus.OK)
+      .send({ message: 'Owner set for microcontroller' });
   }
 
   @UseGuards(UserGuard)
@@ -139,5 +183,37 @@ export class MicrocontrollerController {
       parseInt(device_id),
     );
     return res.status(HttpStatus.OK).send(logs);
+  }
+
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        device_id: { type: 'number', example: 1 },
+      },
+      required: ['device_id'],
+    },
+    description:
+      'Delete a microcontroller as its owner. Only the owner can perform this action.',
+  })
+  @UseGuards(UserGuard)
+  @Post('delete-mc')
+  async deleteMicrocontroller(
+    @Body() body: { device_id: number },
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const token = extractTokenFromCookies(req, 'auth');
+    if (!token) {
+      throw new ForbiddenException('No authentication token provided');
+    }
+    const payload: JwtPayload = this.jwtService.decode(token);
+    await this.microcontrollerService.deleteMicrocontrollerAsOwner(
+      payload.sub,
+      body.device_id,
+    );
+    return res
+      .status(HttpStatus.OK)
+      .send({ message: 'Microcontroller deleted' });
   }
 }

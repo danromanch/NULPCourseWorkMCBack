@@ -58,7 +58,6 @@ export class MailService {
     if (!user) {
       return 'User not found';
     }
-    console.log('asdasdadkladl;asjd');
     await this.mailerService.sendMail({
       to: user.email,
       subject: 'You got a mail in your post box',
