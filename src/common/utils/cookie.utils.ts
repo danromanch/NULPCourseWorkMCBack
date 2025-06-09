@@ -6,7 +6,7 @@ export const cookieConfig = {
     options: {
       path: '/',
       httpOnly: true,
-      sameSite: 'strict' as const,
+      sameSite: 'none' as const,
       secure: false,
       maxAge: 1000 * 60 * 60 * 24 * 7,
     },
@@ -16,7 +16,7 @@ export const cookieConfig = {
     options: {
       path: '/',
       httpOnly: true,
-      sameSite: 'strict' as const,
+      sameSite: 'none' as const,
       secure: false,
       maxAge: 1000 * 60 * 60 * 24 * 30,
     },
