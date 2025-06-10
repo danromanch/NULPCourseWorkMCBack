@@ -146,9 +146,9 @@ export class UserController {
   }
 
   @Get('confirm/:token')
-  async confirmation(@Param('token') token: string) {
+  async confirmation(@Param('token') token: string, @Res() res: Response) {
     await this.userService.confirm(token);
-    return { message: 'Email confirmed' };
+    return res.redirect(<string>envConfig().app.frontend);
   }
 
   @Post('change-password')

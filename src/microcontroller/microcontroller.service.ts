@@ -170,6 +170,9 @@ export class MicrocontrollerService {
     if (!mc) throw new HttpException('Microcontroller not found', 404);
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new HttpException('User not found', 404);
+    if (mc.owner) {
+      throw new HttpException('Microcontroller already has an owner', 400);
+    }
     mc.owner = user;
     await this.microControllerRepository.save(mc);
   }

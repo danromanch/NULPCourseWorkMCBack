@@ -71,12 +71,63 @@ export class UserService {
 
   async profile(token: string) {
     const payload: JwtPayload = this.jwtService.decode(token);
+    const userId = payload.sub;
+
+    // Get user with their directly associated microcontrollers
     const user = await this.userRepository.findOne({
-      where: { id: payload.sub },
-      relations: ['microcontrollers'],
+      where: { id: userId },
+      relations: [
+        'microcontrollers',
+        'microcontrollers.owner',
+        'microcontrollers.friends',
+      ],
     });
+
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    // Also find microcontrollers where this user is the owner
+    const ownedMicrocontrollers = await this.microControllerRepository.find({
+      where: { owner: { id: userId } },
+      relations: ['owner', 'friends'],
+    });
+
+    // Find friendly microcontrollers (where user is a friend)
+    const friendlyMicrocontrollers = await this.microControllerRepository.find({
+      where: { friends: { id: userId } },
+      relations: ['owner', 'friends'],
+    });
+
     const { passwordHash, id, verified, ...userDto } = user as UserEntity;
-    return userDto;
+
+    // Combine both sets of microcontrollers, avoiding duplicates
+    const combinedMicrocontrollers = [...user.microcontrollers];
+
+    // Add owned microcontrollers if they're not already in the array
+    ownedMicrocontrollers.forEach((mc) => {
+      const isDuplicate = combinedMicrocontrollers.some(
+        (existingMc) => existingMc.id === mc.id,
+      );
+      if (!isDuplicate) {
+        combinedMicrocontrollers.push(mc);
+      }
+    });
+
+    // Add friendly microcontrollers (these will be present in the microcontrollers array)
+    friendlyMicrocontrollers.forEach((mc) => {
+      const isDuplicate = combinedMicrocontrollers.some(
+        (existingMc) => existingMc.id === mc.id,
+      );
+      if (!isDuplicate) {
+        combinedMicrocontrollers.push(mc);
+      }
+    });
+
+    return {
+      ...userDto,
+      microcontrollers: combinedMicrocontrollers,
+    };
   }
 
   refresh(token: string) {
@@ -158,7 +209,6 @@ export class UserService {
     return {
       devices: friendlyDevices.map((device) => ({
         id: device.id,
-        owner: device.owner ? device.owner.name : 'Unknown',
       })),
     };
   }
